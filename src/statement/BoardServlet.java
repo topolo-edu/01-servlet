@@ -1,0 +1,285 @@
+package io.goorm.backend.statement;
+
+import java.io.*;
+import java.sql.*;
+import javax.servlet.*;
+import javax.servlet.http.*;
+
+/**
+ * Statement를 사용한 게시판 서블릿 (XSS·SQL 인젝션 취약)
+ * 2000년대 초반 스타일의 코드로 보안 취약점을 재현
+ */
+public class BoardServlet extends HttpServlet {
+
+  // DB 연결 정보
+  private static final String DB_URL = "jdbc:h2:./goorm_db";
+  private static final String DB_USER = "sa";
+  private static final String DB_PASSWORD = "";
+
+  @Override
+  protected void doGet(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+
+    response.setContentType("text/html;charset=UTF-8");
+    PrintWriter out = response.getWriter();
+
+    String action = request.getParameter("action");
+    if (action == null) {
+      action = "list";
+    }
+
+    // HTML 헤더 출력
+    printHeader(out);
+
+    try {
+      switch (action) {
+        case "list":
+          showBoardList(out);
+          break;
+        case "write":
+          showWriteForm(out);
+          break;
+        case "view":
+          showBoardDetail(out, request);
+          break;
+        default:
+          showBoardList(out);
+      }
+    } catch (Exception e) {
+      out.println("<h2>오류 발생</h2>");
+      out.println("<p style='color: red;'>" + e.getMessage() + "</p>");
+      e.printStackTrace(out);
+    }
+
+    // HTML 푸터 출력
+    printFooter(out);
+  }
+
+  @Override
+  protected void doPost(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+
+    response.setContentType("text/html;charset=UTF-8");
+    PrintWriter out = response.getWriter();
+
+    // HTML 헤더 출력
+    printHeader(out);
+
+    try {
+      // 게시글 저장
+      saveBoard(request);
+      out.println("<h2>게시글이 저장되었습니다!</h2>");
+      out.println("<p><a href='board?action=list'>목록으로 돌아가기</a></p>");
+    } catch (Exception e) {
+      out.println("<h2>저장 중 오류 발생</h2>");
+      out.println("<p style='color: red;'>" + e.getMessage() + "</p>");
+      e.printStackTrace(out);
+    }
+
+    // HTML 푸터 출력
+    printFooter(out);
+  }
+
+  /**
+   * 게시글 목록 출력
+   */
+  private void showBoardList(PrintWriter out) throws Exception {
+    out.println("<h2>게시판 목록</h2>");
+    out.println("<p><a href='board?action=write'>글쓰기</a></p>");
+
+    Connection conn = null;
+    Statement stmt = null;
+    ResultSet rs = null;
+
+    try {
+      conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+      // Statement 사용 - SQL 인젝션 취약
+      String sql = "SELECT id, title, author, created_at FROM board ORDER BY created_at DESC";
+      stmt = conn.createStatement();
+      rs = stmt.executeQuery(sql);
+
+      out.println("<table border='1' style='width: 100%; border-collapse: collapse;'>");
+      out.println("<tr style='background-color: #f0f0f0;'>");
+      out.println("<th>번호</th><th>제목</th><th>작성자</th><th>작성일</th>");
+      out.println("</tr>");
+
+      while (rs.next()) {
+        int id = rs.getInt("id");
+        String title = rs.getString("title");
+        String author = rs.getString("author");
+        String createdAt = rs.getString("created_at");
+
+        out.println("<tr>");
+        out.println("<td>" + id + "</td>");
+        // XSS 취약 - 사용자 입력을 그대로 출력
+        out.println("<td><a href='board?action=view&id=" + id + "'>" + title + "</a></td>");
+        out.println("<td>" + author + "</td>");
+        out.println("<td>" + createdAt + "</td>");
+        out.println("</tr>");
+      }
+
+      out.println("</table>");
+
+    } finally {
+      if (rs != null)
+        try {
+          rs.close();
+        } catch (SQLException e) {
+        }
+      if (stmt != null)
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+        }
+      if (conn != null)
+        try {
+          conn.close();
+        } catch (SQLException e) {
+        }
+    }
+  }
+
+  /**
+   * 글쓰기 폼 출력
+   */
+  private void showWriteForm(PrintWriter out) {
+    out.println("<h2>글쓰기</h2>");
+    out.println("<form method='post' action='board'>");
+    out.println("<table style='width: 100%;'>");
+    out.println("<tr><td>제목:</td><td><input type='text' name='title' size='50' required></td></tr>");
+    out.println("<tr><td>작성자:</td><td><input type='text' name='author' size='20' required></td></tr>");
+    out.println("<tr><td>내용:</td><td><textarea name='content' rows='10' cols='50' required></textarea></td></tr>");
+    out.println("<tr><td colspan='2'><input type='submit' value='저장' style='margin-top: 10px;'></td></tr>");
+    out.println("</table>");
+    out.println("</form>");
+    out.println("<p><a href='board?action=list'>목록으로 돌아가기</a></p>");
+  }
+
+  /**
+   * 게시글 상세보기
+   */
+  private void showBoardDetail(PrintWriter out, HttpServletRequest request) throws Exception {
+    String id = request.getParameter("id");
+
+    Connection conn = null;
+    Statement stmt = null;
+    ResultSet rs = null;
+
+    try {
+      conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+      // Statement 사용 - SQL 인젝션 취약
+      String sql = "SELECT * FROM board WHERE id = " + id;
+      stmt = conn.createStatement();
+      rs = stmt.executeQuery(sql);
+
+      if (rs.next()) {
+        String title = rs.getString("title");
+        String content = rs.getString("content");
+        String author = rs.getString("author");
+        String createdAt = rs.getString("created_at");
+
+        out.println("<h2>" + title + "</h2>");
+        out.println("<table style='width: 100%;'>");
+        out.println("<tr><td><strong>작성자:</strong></td><td>" + author + "</td></tr>");
+        out.println("<tr><td><strong>작성일:</strong></td><td>" + createdAt + "</td></tr>");
+        out.println("<tr><td><strong>내용:</strong></td><td>" + content + "</td></tr>");
+        out.println("</table>");
+      } else {
+        out.println("<h2>게시글을 찾을 수 없습니다.</h2>");
+      }
+
+    } finally {
+      if (rs != null)
+        try {
+          rs.close();
+        } catch (SQLException e) {
+        }
+      if (stmt != null)
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+        }
+      if (conn != null)
+        try {
+          conn.close();
+        } catch (SQLException e) {
+        }
+    }
+
+    out.println("<p><a href='board?action=list'>목록으로 돌아가기</a></p>");
+  }
+
+  /**
+   * 게시글 저장
+   */
+  private void saveBoard(HttpServletRequest request) throws Exception {
+    String title = request.getParameter("title");
+    String content = request.getParameter("content");
+    String author = request.getParameter("author");
+
+    Connection conn = null;
+    Statement stmt = null;
+
+    try {
+      conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+
+      // Statement 사용 - SQL 인젝션 취약
+      String sql = "INSERT INTO board (title, content, author, created_at) VALUES ('" +
+          title + "', '" + content + "', '" + author + "', NOW())";
+
+      stmt = conn.createStatement();
+      stmt.executeUpdate(sql);
+
+    } finally {
+      if (stmt != null)
+        try {
+          stmt.close();
+        } catch (SQLException e) {
+        }
+      if (conn != null)
+        try {
+          conn.close();
+        } catch (SQLException e) {
+        }
+    }
+  }
+
+  /**
+   * HTML 헤더 출력
+   */
+  private void printHeader(PrintWriter out) {
+    out.println("<!DOCTYPE html>");
+    out.println("<html>");
+    out.println("<head>");
+    out.println("<meta charset='UTF-8'>");
+    out.println("<title>게시판 - Statement 버전</title>");
+    out.println("<style>");
+    out.println("body { font-family: Arial, sans-serif; margin: 20px; }");
+    out.println("table { border-collapse: collapse; width: 100%; }");
+    out.println("th, td { padding: 8px; text-align: left; border: 1px solid #ddd; }");
+    out.println("th { background-color: #f2f2f2; }");
+    out.println("input[type='text'], textarea { width: 100%; padding: 5px; }");
+    out.println(
+        "input[type='submit'] { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; cursor: pointer; }");
+    out.println("input[type='submit']:hover { background-color: #45a049; }");
+    out.println("a { color: #0066cc; text-decoration: none; }");
+    out.println("a:hover { text-decoration: underline; }");
+    out.println("</style>");
+    out.println("</head>");
+    out.println("<body>");
+    out.println("<h1 style='color: #cc0000;'>⚠️ Statement 버전 (보안 취약)</h1>");
+    out.println("<p style='color: #666;'>이 버전은 XSS와 SQL 인젝션에 취약합니다.</p>");
+  }
+
+  /**
+   * HTML 푸터 출력
+   */
+  private void printFooter(PrintWriter out) {
+    out.println("<hr style='margin: 20px 0;'>");
+    out.println("<p><a href='welcome'>홈으로</a> | <a href='board?action=list'>게시판</a></p>");
+    out.println("</body>");
+    out.println("</html>");
+  }
+}

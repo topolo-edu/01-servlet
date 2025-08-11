@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee 
+         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+    <display-name>Java Web History - Statement vs PreparedStatement</display-name>
+    <description>2000년대 초반 스타일의 Servlet 코드로 보안 취약점 비교</description>
+
+    <!-- 공통 환영 페이지 서블릿 -->
+    <servlet>
+        <servlet-name>WelcomeServlet</servlet-name>
+        <servlet-class>io.goorm.backend.WelcomeServlet</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>WelcomeServlet</servlet-name>
+        <url-pattern>/welcome</url-pattern>
+    </servlet-mapping>
+
+    <!-- 게시판 서블릿 -->
+    <!-- 
+    Statement 버전 (보안 취약)을 사용하려면 아래 주석을 해제하고
+    PreparedStatement 버전을 주석 처리하세요.
+    -->
+    <servlet>
+        <servlet-name>BoardServlet</servlet-name>
+        <servlet-class>io.goorm.backend.statement.BoardServlet</servlet-class>
+    </servlet>
+    
+    <!-- 
+    PreparedStatement 버전 (SQL 인젝션 방어)을 사용하려면 아래 주석을 해제하고
+    Statement 버전을 주석 처리하세요.
+    
+    <servlet>
+        <servlet-name>BoardServlet</servlet-name>
+        <servlet-class>io.goorm.backend.prepared.BoardServlet</servlet-class>
+    </servlet>
+    -->
+    
+    <servlet-mapping>
+        <servlet-name>BoardServlet</servlet-name>
+        <url-pattern>/board</url-pattern>
+    </servlet-mapping>
+
+    <!-- 기본 환영 페이지 -->
+    <welcome-file-list>
+        <welcome-file>welcome</welcome-file>
+    </welcome-file-list>
+
+    <!-- 세션 설정 -->
+    <session-config>
+        <session-timeout>30</session-timeout>
+    </session-config>
+
+    <!-- 에러 페이지 설정 -->
+    <error-page>
+        <error-code>404</error-code>
+        <location>/welcome</location>
+    </error-page>
+    
+    <error-page>
+        <error-code>500</error-code>
+        <location>/welcome</location>
+    </error-page>
+
+</web-app>

@@ -35,13 +35,33 @@ mkdir WEB-INF/lib
 
 **참고**: H2 JDBC 드라이버는 [H2 Database 공식 사이트](http://www.h2database.com/)에서 다운로드 가능합니다.
 
-#### Java 소스 컴파일
+#### Servlet API 라이브러리 클래스패스 설정
+
+##### 방법 1: 환경변수로 클래스패스 설정 (권장)
+
+터미널에서 한 번만 설정하면 반복 컴파일 시 편리합니다:
 
 ```bash
-javac -cp "WEB-INF/lib/*" -d "WEB-INF/classes" "src/statement/BoardServlet.java"
-javac -cp "WEB-INF/lib/*" -d "WEB-INF/classes" "src/prepared/BoardServlet.java"
-javac -cp "WEB-INF/lib/*" -d "WEB-INF/classes" "src/WelcomeServlet.java"
+# Windows (톰캣 경로는 실제 설치 경로로 수정)
+set CLASSPATH=C:\apache-tomcat-9.0.xx\lib\servlet-api.jar;C:\apache-tomcat-9.0.xx\lib\jsp-api.jar;
+
+# Mac/Linux (톰캣 경로는 실제 설치 경로로 수정)
+export CLASSPATH=/path/to/apache-tomcat-9.0.xx/lib/servlet-api.jar:/path/to/apache-tomcat-9.0.xx/lib/jsp-api.jar:
 ```
+
+설정 후 간단하게 컴파일:
+
+```cmd
+
+javac -d "WEB-INF/classes" "src/io/goorm/backend/statement/BoardServlet.java"
+javac -d "WEB-INF/classes" "src/io/goorm/backend/prepared/BoardServlet.java"
+javac -d "WEB-INF/classes" "src/io/goorm/backend/WelcomeServlet.java"
+```
+
+**클래스패스 구성**:
+
+- `톰캣경로/lib/servlet-api.jar`: Servlet API 클래스들
+- `톰캣경로/lib/jsp-api.jar`: JSP API 클래스들 (JSP 사용 시)
 
 **확인사항**: `WEB-INF/classes` 폴더에 `.class` 파일들이 생성되었는지 확인
 
@@ -63,21 +83,13 @@ mkdir -p temp_build/WEB-INF/classes temp_build/WEB-INF/lib
 
 #### WAR 파일 생성
 
-```bash
-jar -cvf java-web-history.war -C temp_build .
-```
-
-#### 임시 디렉토리 정리
+ROOT에 배포하기 위해 `ROOT.war`로 생성합니다:
 
 ```bash
-# Windows
-rmdir /s /q temp_build
-
-# Mac/Linux
-rm -rf temp_build
+jar -cvf ROOT.war -C temp_build .
 ```
 
-**확인사항**: `java-web-history.war` 파일이 생성되었는지 확인
+**확인사항**: `ROOT.war` 파일이 생성되었는지 확인
 
 ---
 
@@ -85,11 +97,12 @@ rm -rf temp_build
 
 #### 방법 1: WAR 파일을 ROOT에 직접 복사
 
-- `java-web-history.war` 파일을 Tomcat의 `webapps/ROOT/` 폴더에 복사
+- `ROOT.war` 파일을 Tomcat의 `webapps/` 폴더에 복사
+- Tomcat이 자동으로 `webapps/ROOT/` 폴더에 압축 해제
 
 #### 방법 2: WAR 파일 압축 해제 후 내용 복사
 
-- `java-web-history.war` 파일을 압축 해제
+- `ROOT.war` 파일을 압축 해제
 - 압축 해제된 내용을 Tomcat의 `webapps/ROOT/` 폴더에 복사
 
 **주의사항**: Tomcat 경로는 실제 설치 경로로 수정해야 합니다.
@@ -134,6 +147,8 @@ rm -rf temp_build
 
 - Java 버전 확인 (Java 8 이상 필요)
 - `WEB-INF/lib` 폴더에 필요한 JAR 파일이 있는지 확인
+- **Servlet API 라이브러리(`servlet-api.jar`)가 클래스패스에 포함되어 있는지 확인**
+- **`javax.servlet.*` 패키지 관련 오류가 발생하면 Servlet API 라이브러리 누락**
 - 소스 파일 경로가 올바른지 확인
 
 ### 배포 후 접속이 안 되는 경우

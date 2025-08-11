@@ -12,9 +12,18 @@ import javax.servlet.http.*;
 public class BoardServlet extends HttpServlet {
 
   // DB 연결 정보
-  private static final String DB_URL = "jdbc:h2:D:/debEnv/h2/data/goorm_db";
+  private static final String DB_URL = "jdbc:h2:file:D:/devEnv/h2/data/goorm_db;AUTO_SERVER=TRUE";
   private static final String DB_USER = "sa";
   private static final String DB_PASSWORD = "";
+
+  @Override
+  public void init() throws ServletException {
+    try {
+      Class.forName("org.h2.Driver"); // H2 드라이버 등록
+    } catch (ClassNotFoundException e) {
+      throw new UnavailableException("H2 Driver not found in WEB-INF/lib");
+    }
+  }
 
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response)

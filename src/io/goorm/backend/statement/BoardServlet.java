@@ -12,7 +12,7 @@ import javax.servlet.http.*;
 public class BoardServlet extends HttpServlet {
 
   // DB 연결 정보
-  private static final String DB_URL = "jdbc:h2:./goorm_db";
+  private static final String DB_URL = "jdbc:h2:D:/debEnv/h2/data/goorm_db";
   private static final String DB_USER = "sa";
   private static final String DB_PASSWORD = "";
 

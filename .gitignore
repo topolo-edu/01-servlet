@@ -1,1 +1,10 @@
 WEB-INF/lib/h2-2.3.232.jar
+temp_build/WEB-INF/classes/io/goorm/backend/WelcomeServlet.class
+temp_build/WEB-INF/classes/io/goorm/backend/prepared/BoardServlet.class
+temp_build/WEB-INF/classes/io/goorm/backend/statement/BoardServlet.class
+temp_build/WEB-INF/lib/h2-2.3.232.jar
+temp_build/WEB-INF/web.xml
+WEB-INF/classes/io/goorm/backend/WelcomeServlet.class
+WEB-INF/classes/io/goorm/backend/prepared/BoardServlet.class
+WEB-INF/classes/io/goorm/backend/statement/BoardServlet.class
+ROOT.war
